@@ -11,9 +11,12 @@ TEMPLATES_DIR = BASE_DIR / 'templates'
 SECRET_KEY = 'django-insecure-#1+&-f8+4*el=vi)ggncxc5_$hi^hny^jfl85q!a0n@5kygurr'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False  # True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -130,3 +133,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 INTERNAL_IPS = [
     '127.0.0.1',
 ]
+
+# Для работы ошибки 403
+CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
+ERROR_HANDLERS = {
+    '500': 'pages.views.error_500',
+}
