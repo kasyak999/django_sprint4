@@ -11,7 +11,7 @@ TEMPLATES_DIR = BASE_DIR / 'templates'
 SECRET_KEY = 'django-insecure-#1+&-f8+4*el=vi)ggncxc5_$hi^hny^jfl85q!a0n@5kygurr'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # True
+DEBUG = True  # False  # True
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -139,3 +139,12 @@ CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 ERROR_HANDLERS = {
     '500': 'pages.views.error_500',
 }
+
+# Подключаем бэкенд filebased.EmailBackend:
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+# Указываем директорию, в которую будут сохраняться файлы писем:
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+
+# ссылка пользователя
+LOGIN_REDIRECT_URL = 'blog:index'
+LOGIN_URL = 'login'
