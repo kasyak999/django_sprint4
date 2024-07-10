@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, Category, Location, User
+from .models import Post, Category, Location, User, UserComments
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
@@ -81,6 +81,7 @@ class CategoryAdmin(MainAdmin):
 admin.site.register(Post, PostAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Location, LocationAdmin)
+admin.site.register(UserComments, CategoryAdmin)
 
 
 # Регистрация модели User с вашим настроенным UserAdmin

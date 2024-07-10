@@ -1,15 +1,27 @@
+from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
 from django.shortcuts import render, get_object_or_404, redirect
 # get_list_or_404
 from django.http import HttpResponse, HttpRequest
-from blog.models import Post, Category, User
+from blog.models import Post, Category, User, UserComments
 from django.utils import timezone
 
-from django.views.generic import DetailView, UpdateView, ListView, CreateView
+from django.views.generic import (
+    DetailView, UpdateView, ListView, CreateView, DeleteView
+)
 from django.urls import reverse_lazy
 
 from django.core.paginator import Paginator
 from django.db.models import Q
+from .forms import MainForm, AddForm
+# from django import forms
+
+
+class AddCommentCreateView(CreateView):
+    """Добавление коментариев"""
+
+    model = UserComments
+    template_name = 'blog/comment.html'
 
 
 class ProfileDetailView(DetailView):
@@ -55,10 +67,14 @@ class ProfileUpdateView(UpdateView):
         'username', 'first_name', 'last_name', 'email'
     )
     template_name = 'blog/user.html'
-    success_url = reverse_lazy('blog:index')
 
     def get_object(self):
         return self.request.user
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:profile', kwargs={'username': self.request.user.username}
+        )
 
 
 class IndexListView(ListView):
@@ -74,9 +90,7 @@ class CreateCreateView(CreateView):
     """Создание нового поста"""
 
     model = Post
-    fields = (
-        'title', 'text', 'pub_date', 'category', 'location'
-    )
+    form_class = AddForm
     template_name = 'blog/create.html'
 
     def dispatch(self, request, *args, **kwargs):
@@ -107,24 +121,56 @@ class PostUpdateView(UpdateView):
     """Изменение поста пользователя"""
 
     model = Post
-    fields = (
-        'title', 'text', 'pub_date', 'category', 'location'
-    )
-    template_name = 'blog/user.html'
+    form_class = AddForm
+    template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
 
+    def dispatch(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.author != self.request.user:
+            return redirect(
+                'blog:post_detail', kwargs['post_id']
+            )
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
-        return super().get_queryset().filter(
-            pk=self.kwargs['post_id'], author=self.request.user
+        result = super().get_queryset().filter(
+            pk=self.kwargs['post_id'],
         )
+        return result
 
     def get_success_url(self):
         return reverse_lazy(
             'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
         )
 
-    # def handle_no_permission(self):
-    #     return redirect('blog:index')
+
+class PostUserDeleteView(DeleteView):
+    """Удаление поста"""
+
+    model = Post
+    template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
+    success_url = reverse_lazy('blog:index')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = MainForm(instance=self.object)
+        return context
+
+    def get_queryset(self):
+        result = super().get_queryset().filter(
+            pk=self.kwargs['post_id'],
+        )
+        return result
+
+    def dispatch(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.author != self.request.user:
+            return redirect(
+                'blog:post_detail', kwargs['post_id']
+            )
+        return super().dispatch(request, *args, **kwargs)
 
 
 class CategoryPostsListView(ListView):
@@ -133,6 +179,7 @@ class CategoryPostsListView(ListView):
     context_object_name = 'post_list'
     template_name = 'blog/category.html'
     paginate_by = 10
+    category = None
 
     def get_queryset(self):
         self.category = get_object_or_404(

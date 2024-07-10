@@ -5,6 +5,11 @@ from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from django.views.generic.edit import CreateView
 
+# Импортируем настройки проекта.
+from django.conf import settings
+# Импортируем функцию, позволяющую серверу разработки отдавать файлы.
+from django.conf.urls.static import static
+
 
 app_name = 'blogicum'
 urlpatterns = [
@@ -21,7 +26,7 @@ urlpatterns = [
         ),
         name='registration',
     ),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Если проект запущен в режиме разработки...
 if settings.DEBUG:

@@ -43,9 +43,30 @@ class PublishedModel(models.Model):
         return result
 
 
+class UserComments(PublishedModel):
+    """Коментарии"""
+
+    title = models.TextField('Текст поздравления')
+    birthday = models.ForeignKey(
+        'Post',
+        on_delete=models.CASCADE,
+        related_name='congratulations',
+    )
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta(PublishedModel.Meta):
+        """Перевод модели"""
+
+        verbose_name = 'коментарий'
+        verbose_name_plural = 'Коментарии'
+
+
 class Post(PublishedModel):
     """Публикация"""
 
+    image = models.ImageField(
+        verbose_name='Фото', blank=True, upload_to='load_images'
+    )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

@@ -148,3 +148,6 @@ EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 # ссылка пользователя
 LOGIN_REDIRECT_URL = 'blog:index'
 LOGIN_URL = 'login'
+
+# Директория загруженых файлов
+MEDIA_ROOT = BASE_DIR / 'media'
