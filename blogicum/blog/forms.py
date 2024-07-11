@@ -1,11 +1,19 @@
 from django import forms
-from .models import Post
+from .models import Post, UserComments
 
 
 class MainForm(forms.ModelForm):
     class Meta:
         model = Post
         fields = '__all__'
+
+
+class AddPostForm(forms.ModelForm):
+    class Meta:
+        model = UserComments
+        fields = (
+            'text',
+        )
 
 
 class AddForm(forms.ModelForm):

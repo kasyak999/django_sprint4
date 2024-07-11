@@ -13,8 +13,9 @@ from django.urls import reverse_lazy
 
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .forms import MainForm, AddForm
+from .forms import MainForm, AddForm, AddPostForm
 # from django import forms
+from django.db.models import Count
 
 
 class AddCommentCreateView(CreateView):
@@ -22,6 +23,21 @@ class AddCommentCreateView(CreateView):
 
     model = UserComments
     template_name = 'blog/comment.html'
+    form_class = AddPostForm
+    pk_url_kwarg = 'post_id'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.post = self.get_object()
+        return super().form_valid(form)
+
+    def get_object(self):
+        return Post.objects.get(pk=self.kwargs['post_id'])
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:profile', kwargs={'username': self.request.user.username}
+        )
 
 
 class ProfileDetailView(DetailView):
@@ -85,6 +101,13 @@ class IndexListView(ListView):
     paginate_by = 10
     context_object_name = 'post_list'
 
+    def get_queryset(self):
+        return (
+            super().get_queryset().annotate(
+                comment_count=Count("usercomments")
+            )
+        )
+
 
 class CreateCreateView(CreateView):
     """Создание нового поста"""
@@ -115,6 +138,28 @@ def post_detail(request: HttpRequest, pk: int) -> HttpResponse:
         id=pk,
     )
     return render(request, 'blog/detail.html', {'post': post})
+
+
+class PostDetail(DetailView):
+    """Пост подробнее"""
+
+    model = Post
+    template_name = 'blog/detail.html'
+
+    def get_context_data(self, **kwargs):
+        result = UserComments.objects.filter(
+            post_id=self.object.id
+        ).select_related('author')
+        form = AddPostForm()
+
+        context = super().get_context_data(**kwargs)
+        context['comments'] = result
+        context['form'] = form
+        return context
+
+    def get_queryset(self):
+        result = super().get_queryset().select_related('author')
+        return result
 
 
 class PostUpdateView(UpdateView):

@@ -46,19 +46,21 @@ class PublishedModel(models.Model):
 class UserComments(PublishedModel):
     """Коментарии"""
 
-    title = models.TextField('Текст поздравления')
-    birthday = models.ForeignKey(
-        'Post',
-        on_delete=models.CASCADE,
-        related_name='congratulations',
-    )
+    text = models.TextField(verbose_name='Текст коментария')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(
+        'Post',
+        on_delete=models.CASCADE
+    )
 
     class Meta(PublishedModel.Meta):
         """Перевод модели"""
 
         verbose_name = 'коментарий'
         verbose_name_plural = 'Коментарии'
+
+    def __str__(self):
+        return self.text
 
 
 class Post(PublishedModel):

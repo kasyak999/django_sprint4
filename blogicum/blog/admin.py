@@ -78,10 +78,18 @@ class CategoryAdmin(MainAdmin):
     )
 
 
+class UserCommentsAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'text',
+        'is_published',
+    )
+
+
 admin.site.register(Post, PostAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Location, LocationAdmin)
-admin.site.register(UserComments, CategoryAdmin)
+admin.site.register(UserComments, UserCommentsAdmin)
 
 
 # Регистрация модели User с вашим настроенным UserAdmin
