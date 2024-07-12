@@ -21,13 +21,13 @@
         <div class="card-body">
           <form method="post"
             {% if '/edit_comment/' in request.path %}
-              action="{% url 'blog:edit_comment' comment.post_id comment.id %}"
+              action="{% url 'blog:edit_comment' usercomments.post_id usercomments.id %}"
             {% endif %}>
             {% csrf_token %}
             {% if not '/delete_comment/' in request.path %}
               {% bootstrap_form form %}
             {% else %}
-              <p>{{ comment.text }}</p>
+              <p>{{ usercomments.text }}</p>
             {% endif %}
             {% bootstrap_button button_type="submit" content="Отправить" %}
           </form>

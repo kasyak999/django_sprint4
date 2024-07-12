@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from django.db.models.base import Model as Model
 from django.db.models.query import QuerySet
 from django.shortcuts import render, get_object_or_404, redirect
@@ -18,7 +19,43 @@ from .forms import MainForm, AddForm, AddPostForm
 from django.db.models import Count
 
 
-class AddCommentCreateView(CreateView):
+class PostSuccessUrl():
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
+
+
+class UserSuccessUrl():
+    """Перенаправление на страницк пользователя"""
+
+    def get_success_url(self):
+        return reverse_lazy(
+            'blog:profile', kwargs={'username': self.request.user.username}
+        )
+
+
+class OnlyAuthorMixin:
+    """Проверка авторства"""
+
+    def dispatch(self, request, *args, **kwargs):
+        post = self.get_object()
+        if post.author != self.request.user:
+            return redirect(
+                'blog:post_detail', kwargs['post_id']
+            )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        result = super().get_queryset().filter(
+            pk=self.kwargs['post_id'],
+        ).order_by('created_at',)
+        return result
+
+######################################################
+
+
+class AddCommentCreateView(UserSuccessUrl, CreateView):
     """Добавление коментариев"""
 
     model = UserComments
@@ -33,11 +70,6 @@ class AddCommentCreateView(CreateView):
 
     def get_object(self):
         return Post.objects.get(pk=self.kwargs['post_id'])
-
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:profile', kwargs={'username': self.request.user.username}
-        )
 
 
 class ProfileDetailView(DetailView):
@@ -75,7 +107,7 @@ class ProfileDetailView(DetailView):
         return context
 
 
-class ProfileUpdateView(UpdateView):
+class ProfileUpdateView(UserSuccessUrl, UpdateView):
     """Изменение профиля пользователя"""
 
     model = User
@@ -86,11 +118,6 @@ class ProfileUpdateView(UpdateView):
 
     def get_object(self):
         return self.request.user
-
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:profile', kwargs={'username': self.request.user.username}
-        )
 
 
 class IndexListView(ListView):
@@ -109,7 +136,7 @@ class IndexListView(ListView):
         )
 
 
-class CreateCreateView(CreateView):
+class CreateCreateView(UserSuccessUrl, CreateView):
     """Создание нового поста"""
 
     model = Post
@@ -122,22 +149,9 @@ class CreateCreateView(CreateView):
             return redirect('login')
         return super().dispatch(request, *args, **kwargs)
 
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:profile', kwargs={'username': self.request.user.username}
-        )
-
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
-
-
-def post_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    post = get_object_or_404(
-        Post.objects.main_filter(),
-        id=pk,
-    )
-    return render(request, 'blog/detail.html', {'post': post})
 
 
 class PostDetail(DetailView):
@@ -162,35 +176,25 @@ class PostDetail(DetailView):
         return result
 
 
-class PostUpdateView(UpdateView):
-    """Изменение поста пользователя"""
+class EditCommentUpdateView(PostSuccessUrl, OnlyAuthorMixin, UpdateView):
+    """Измененить коментарий"""
+
+    model = UserComments
+    template_name = 'blog/comment.html'
+    form_class = AddPostForm
+    pk_url_kwarg = 'comment_id'
+
+
+class PostUpdateView(PostSuccessUrl, OnlyAuthorMixin, UpdateView):
+    """Измененить пост пользователя"""
 
     model = Post
     form_class = AddForm
     template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
 
-    def dispatch(self, request, *args, **kwargs):
-        post = self.get_object()
-        if post.author != self.request.user:
-            return redirect(
-                'blog:post_detail', kwargs['post_id']
-            )
-        return super().dispatch(request, *args, **kwargs)
 
-    def get_queryset(self):
-        result = super().get_queryset().filter(
-            pk=self.kwargs['post_id'],
-        )
-        return result
-
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
-        )
-
-
-class PostUserDeleteView(DeleteView):
+class PostUserDeleteView(OnlyAuthorMixin, DeleteView):
     """Удаление поста"""
 
     model = Post
@@ -203,29 +207,15 @@ class PostUserDeleteView(DeleteView):
         context['form'] = MainForm(instance=self.object)
         return context
 
-    def get_queryset(self):
-        result = super().get_queryset().filter(
-            pk=self.kwargs['post_id'],
-        )
-        return result
 
-    def dispatch(self, request, *args, **kwargs):
-        post = self.get_object()
-        if post.author != self.request.user:
-            return redirect(
-                'blog:post_detail', kwargs['post_id']
-            )
-        return super().dispatch(request, *args, **kwargs)
-
-
-class CategoryPostsListView(ListView):
+class CategoryPostsListView(ListView):  # DetailView
     """Вывод постов в категории"""
 
     context_object_name = 'post_list'
     template_name = 'blog/category.html'
     paginate_by = 10
     category = None
-
+    
     def get_queryset(self):
         self.category = get_object_or_404(
             Category,
