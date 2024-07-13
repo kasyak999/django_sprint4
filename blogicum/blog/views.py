@@ -85,18 +85,14 @@ class ProfileDetailView(DetailView):
     def get_context_data(self, **kwargs):
         if self.request.user.is_authenticated:
             user_posts = Post.objects.filter(
-                Q(
-                    is_published=True, category__is_published=True,
-                    pub_date__lt=timezone.now(), author=self.object
-                ) | Q(author=self.request.user)
-            ).select_related('location', 'category', 'author')
+                author=self.request.user
+            )
         else:
             user_posts = Post.objects.filter(
                 is_published=True,
                 category__is_published=True,
-                pub_date__lt=timezone.now(),
-                author_id=self.object.id
-            ).select_related('location', 'category', 'author')
+                pub_date__lt=timezone.now(), author=self.object
+            )
 
         paginator = Paginator(user_posts, self.paginate_by)
         page_number = self.request.GET.get('page')
@@ -215,7 +211,7 @@ class CategoryPostsListView(ListView):  # DetailView
     template_name = 'blog/category.html'
     paginate_by = 10
     category = None
-    
+
     def get_queryset(self):
         self.category = get_object_or_404(
             Category,
@@ -225,7 +221,9 @@ class CategoryPostsListView(ListView):  # DetailView
         return self.category.posts.filter(
             is_published=True,
             pub_date__lt=timezone.now()
-        ).select_related('location', 'author')
+        ).select_related('location', 'author').annotate(
+                comment_count=Count("usercomments")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(*kwargs)
