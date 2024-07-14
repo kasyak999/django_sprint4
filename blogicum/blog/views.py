@@ -56,8 +56,6 @@ class IndexListView(ListView):
     queryset = Post.objects.main_filter()
     template_name = 'blog/index.html'
     paginate_by = 10
-    context_object_name = 'post_list'
-    ordering = '-pub_date'
 
 
 class CategoryPostsListView(ListView):  # DetailView
@@ -125,25 +123,19 @@ class PostDetail(DetailView):
         return result
 
 
-class CreateCreateView(UserSuccessUrl, CreateView):
+class CreateCreateView(UserPassesMixin, UserSuccessUrl, CreateView):
     """Создание нового поста"""
 
     model = Post
     form_class = AddForm
     template_name = 'blog/create.html'
 
-    def dispatch(self, request, *args, **kwargs):
-        """Только для авторизированых"""
-        if not request.user.is_authenticated:
-            return redirect('login')
-        return super().dispatch(request, *args, **kwargs)
-
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
 
 
-class PostUserDeleteView(OnlyAuthorMixin, DeleteView):
+class PostUserDeleteView(UserPassesMixin, OnlyAuthorMixin, DeleteView):
     """Удаление поста"""
 
     model = Post
@@ -163,7 +155,7 @@ class PostUserDeleteView(OnlyAuthorMixin, DeleteView):
         return result
 
 
-class PostUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
+class PostUpdateView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView):
     """Измененить пост пользователя"""
 
     model = Post
@@ -210,7 +202,7 @@ class ProfileDetailView(DetailView):
         return context
 
 
-class ProfileUpdateView(UserSuccessUrl, UpdateView):
+class ProfileUpdateView(UserPassesMixin, UserSuccessUrl, UpdateView):
     """Изменение профиля пользователя"""
 
     model = User
@@ -241,7 +233,7 @@ class AddCommentCreateView(UserPassesMixin, PostSuccessUrl, CreateView):
         return super().form_valid(form)
 
 
-class EditCommentUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
+class EditCommentUpdateView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView):
     """Измененить коментарий"""
 
     model = Comments
@@ -256,7 +248,7 @@ class EditCommentUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
         return result
 
 
-class ComentDeleteView(OnlyAuthorMixin, PostSuccessUrl, DeleteView):
+class ComentDeleteView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, DeleteView):
     """Удаление коментария"""
 
     model = Comments
