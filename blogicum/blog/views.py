@@ -53,7 +53,7 @@ class UserPassesMixin(UserPassesTestMixin):
 class IndexListView(ListView):
     """Главная страница"""
 
-    queryset = Post.objects.main_filter()
+    queryset = Post.database_query_manager.all()
     template_name = 'blog/index.html'
     paginate_by = 10
 
@@ -73,7 +73,7 @@ class CategoryPostsListView(ListView):  # DetailView
             slug=category_slug,
             is_published=True
         )
-        return category.posts.main_filter().filter(
+        return category.posts.all().filter(
             category__slug=category_slug
         )
 
@@ -155,7 +155,9 @@ class PostUserDeleteView(UserPassesMixin, OnlyAuthorMixin, DeleteView):
         return result
 
 
-class PostUpdateView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView):
+class PostUpdateView(
+    UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView
+):
     """Измененить пост пользователя"""
 
     model = Post
@@ -190,7 +192,7 @@ class ProfileDetailView(DetailView):
                 pub_date__lt=timezone.now(), author=self.object
             )
         ).annotate(
-            comment_count=Count("comments")
+            comment_count=Count("comment")
         ).order_by('-pub_date')
 
         paginator = Paginator(user_posts, self.paginate_by)
