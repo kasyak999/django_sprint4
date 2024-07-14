@@ -145,4 +145,4 @@ LOGIN_URL = 'login'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Директория для щагрузки файлов
-# MEDIA_URL = 'media/'
+MEDIA_URL = 'media/'
