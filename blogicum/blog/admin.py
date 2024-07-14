@@ -14,11 +14,11 @@ class MainAdmin(admin.ModelAdmin):
     actions = ['on_published', 'off_published']  # Действие
 
     @admin.action(description="Опубликовать")
-    def on_published(modeladmin, request, queryset):
+    def on_published(self, modeladmin, request, queryset):
         queryset.update(is_published=True)
 
     @admin.action(description="Снять с публикации")
-    def off_published(modeladmin, request, queryset):
+    def off_published(self, modeladmin, request, queryset):
         queryset.update(is_published=False)
 
 
@@ -34,8 +34,8 @@ class LocationAdmin(MainAdmin):
 
 
 class MyFilter(admin.SimpleListFilter):
-    title = _('Видны на сайте')  # Имя, которое будет отображаться в админ-панели
-    parameter_name = 'category__is_published'  # Название параметра URL для фильтра
+    title = _('Видны на сайте')
+    parameter_name = 'category__is_published'
 
     def lookups(self, request, model_admin):
         return (
@@ -44,19 +44,18 @@ class MyFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
-        value = request.GET.get(self.parameter_name)  # Получаем значение фильтра из URL
+        value = request.GET.get(self.parameter_name)
         if value is not None:  # Проверяем, было ли выбрано значение
-            if value == 'True':  # Если значение 'True', то фильтруем по 'is_published=True'
+            if value == 'True':
                 return queryset.filter(
                     category__is_published=True,
                     is_published=True
                 )
-            elif value == 'False':  # Если значение 'False', то фильтруем по 'is_published=False'
-                # return queryset.filter(category__is_published=False)
+            elif value == 'False':
                 return queryset.filter(
                     Q(category__is_published=True) | Q(is_published=True)
                 )
-        return queryset  # Возвращаем весь набор данных, если значение фильтра не задано
+        return queryset
 
 
 class PostAdmin(MainAdmin):
@@ -66,7 +65,6 @@ class PostAdmin(MainAdmin):
         'is_published',
         'category',
     )
-    # list_editable = ('is_published',)
     list_filter = ('is_published', MyFilter)
 
 
