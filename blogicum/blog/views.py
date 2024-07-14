@@ -17,8 +17,10 @@ from django.db.models import Q
 from .forms import MainForm, AddForm, AddPostForm
 # from django import forms
 from django.db.models import Count
+from django.contrib.auth.mixins import UserPassesTestMixin
 
 
+# ####################Миксины#####################################
 class PostSuccessUrl():
     def get_success_url(self):
         return reverse_lazy(
@@ -36,8 +38,6 @@ class UserSuccessUrl():
 
 
 class OnlyAuthorMixin:
-    """Проверка авторства"""
-
     def dispatch(self, request, *args, **kwargs):
         post = self.get_object()
         if post.author != self.request.user:
@@ -46,30 +46,141 @@ class OnlyAuthorMixin:
             )
         return super().dispatch(request, *args, **kwargs)
 
+
+class UserPassesMixin(UserPassesTestMixin):
+    """Проверка авторства"""
+    def test_func(self):
+        if self.request.user.is_authenticated:
+            comment = self.get_object()
+            return self.request.user == comment.author
+        return False
+# #####################################################
+
+
+class IndexListView(ListView):
+    """Главная страница"""
+
+    queryset = Post.objects.main_filter()
+    template_name = 'blog/index.html'
+    paginate_by = 10
+    context_object_name = 'post_list'
+    ordering = '-pub_date'
+
+    def get_queryset(self):
+        return (
+            super().get_queryset().annotate(
+                comment_count=Count("usercomments")
+            )
+        )
+
+
+class CategoryPostsListView(ListView):  # DetailView
+    """Вывод постов в категории"""
+
+    context_object_name = 'post_list'
+    template_name = 'blog/category.html'
+    paginate_by = 10
+    category = None
+
+    def get_queryset(self):
+        self.category = get_object_or_404(
+            Category,
+            slug=self.kwargs['category_slug'],
+            is_published=True
+        )
+        return self.category.posts.filter(
+            is_published=True,
+            pub_date__lt=timezone.now()
+        ).select_related('location', 'author').annotate(
+                comment_count=Count("usercomments")
+        ).order_by('-pub_date')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(*kwargs)
+        context['category'] = self.category
+        return context
+
+
+class PostDetail(DetailView):
+    """Пост подробнее"""
+
+    model = Post
+    template_name = 'blog/detail.html'
+
+    def get_context_data(self, **kwargs):
+        result = UserComments.objects.filter(
+            post_id=self.object.id
+        ).select_related('author')
+        form = AddPostForm()
+
+        context = super().get_context_data(**kwargs)
+        context['comments'] = result
+        context['form'] = form
+        return context
+
+    def get_object(self):
+        result = super().get_object()
+        if result.author != self.request.user:
+            return get_object_or_404(
+                self.get_queryset(), is_published=True,
+                category__is_published=True,
+                pub_date__lt=timezone.now(),
+                pk=self.kwargs['pk']
+            )
+        return result
+
+
+class CreateCreateView(UserSuccessUrl, CreateView):
+    """Создание нового поста"""
+
+    model = Post
+    form_class = AddForm
+    template_name = 'blog/create.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Только для авторизированых"""
+        if not request.user.is_authenticated:
+            return redirect('login')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+
+class PostUserDeleteView(OnlyAuthorMixin, DeleteView):
+    """Удаление поста"""
+
+    model = Post
+    template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
+    success_url = reverse_lazy('blog:index')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = MainForm(instance=self.object)
+        return context
+
     def get_queryset(self):
         result = super().get_queryset().filter(
             pk=self.kwargs['post_id'],
         ).order_by('created_at',)
         return result
 
-######################################################
 
+class PostUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
+    """Измененить пост пользователя"""
 
-class AddCommentCreateView(UserSuccessUrl, CreateView):
-    """Добавление коментариев"""
-
-    model = UserComments
-    template_name = 'blog/comment.html'
-    form_class = AddPostForm
+    model = Post
+    form_class = AddForm
+    template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
 
-    def form_valid(self, form):
-        form.instance.author = self.request.user
-        form.instance.post = self.get_object()
-        return super().form_valid(form)
-
-    def get_object(self):
-        return Post.objects.get(pk=self.kwargs['post_id'])
+    def get_queryset(self):
+        result = super().get_queryset().filter(
+            pk=self.kwargs['post_id'],
+        ).order_by('created_at',)
+        return result
 
 
 class ProfileDetailView(DetailView):
@@ -83,16 +194,17 @@ class ProfileDetailView(DetailView):
     paginate_by = 10
 
     def get_context_data(self, **kwargs):
-        if self.request.user.is_authenticated:
-            user_posts = Post.objects.filter(
+        user_posts = Post.objects.filter(
+            Q(
                 author=self.request.user
-            )
-        else:
-            user_posts = Post.objects.filter(
+            ) | Q(
                 is_published=True,
                 category__is_published=True,
                 pub_date__lt=timezone.now(), author=self.object
             )
+        ).annotate(
+            comment_count=Count("usercomments")
+        ).order_by('-pub_date')
 
         paginator = Paginator(user_posts, self.paginate_by)
         page_number = self.request.GET.get('page')
@@ -116,63 +228,25 @@ class ProfileUpdateView(UserSuccessUrl, UpdateView):
         return self.request.user
 
 
-class IndexListView(ListView):
-    """Главная страница"""
+class AddCommentCreateView(OnlyAuthorMixin, PostSuccessUrl, CreateView):
+    # UserPassesMixin
+    """Добавление коментариев"""
 
-    queryset = Post.objects.main_filter()
-    template_name = 'blog/index.html'
-    paginate_by = 10
-    context_object_name = 'post_list'
-
-    def get_queryset(self):
-        return (
-            super().get_queryset().annotate(
-                comment_count=Count("usercomments")
-            )
-        )
-
-
-class CreateCreateView(UserSuccessUrl, CreateView):
-    """Создание нового поста"""
-
-    model = Post
-    form_class = AddForm
-    template_name = 'blog/create.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        """Только для авторизированых"""
-        if not request.user.is_authenticated:
-            return redirect('login')
-        return super().dispatch(request, *args, **kwargs)
+    model = UserComments
+    fields = ('text',)
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'post_id'
 
     def form_valid(self, form):
         form.instance.author = self.request.user
+        form.instance.post = get_object_or_404(
+            Post,
+            pk=self.kwargs['post_id']
+        )
         return super().form_valid(form)
 
 
-class PostDetail(DetailView):
-    """Пост подробнее"""
-
-    model = Post
-    template_name = 'blog/detail.html'
-
-    def get_context_data(self, **kwargs):
-        result = UserComments.objects.filter(
-            post_id=self.object.id
-        ).select_related('author')
-        form = AddPostForm()
-
-        context = super().get_context_data(**kwargs)
-        context['comments'] = result
-        context['form'] = form
-        return context
-
-    def get_queryset(self):
-        result = super().get_queryset().select_related('author')
-        return result
-
-
-class EditCommentUpdateView(PostSuccessUrl, OnlyAuthorMixin, UpdateView):
+class EditCommentUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
     """Измененить коментарий"""
 
     model = UserComments
@@ -180,52 +254,23 @@ class EditCommentUpdateView(PostSuccessUrl, OnlyAuthorMixin, UpdateView):
     form_class = AddPostForm
     pk_url_kwarg = 'comment_id'
 
-
-class PostUpdateView(PostSuccessUrl, OnlyAuthorMixin, UpdateView):
-    """Измененить пост пользователя"""
-
-    model = Post
-    form_class = AddForm
-    template_name = 'blog/create.html'
-    pk_url_kwarg = 'post_id'
+    def get_queryset(self):
+        result = super().get_queryset().filter(
+            pk=self.kwargs['comment_id'],
+        ).order_by('created_at',)
+        return result
 
 
-class PostUserDeleteView(OnlyAuthorMixin, DeleteView):
-    """Удаление поста"""
+class ComentDeleteView(OnlyAuthorMixin, PostSuccessUrl, DeleteView):
+    """Удаление коментария"""
 
-    model = Post
-    template_name = 'blog/create.html'
-    pk_url_kwarg = 'post_id'
-    success_url = reverse_lazy('blog:index')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = MainForm(instance=self.object)
-        return context
-
-
-class CategoryPostsListView(ListView):  # DetailView
-    """Вывод постов в категории"""
-
-    context_object_name = 'post_list'
-    template_name = 'blog/category.html'
-    paginate_by = 10
-    category = None
+    model = UserComments
+    template_name = 'blog/comment.html'
+    form_class = AddPostForm
+    pk_url_kwarg = 'comment_id'
 
     def get_queryset(self):
-        self.category = get_object_or_404(
-            Category,
-            slug=self.kwargs['category_slug'],
-            is_published=True
-        )
-        return self.category.posts.filter(
-            is_published=True,
-            pub_date__lt=timezone.now()
-        ).select_related('location', 'author').annotate(
-                comment_count=Count("usercomments")
-        )
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(*kwargs)
-        context['category'] = self.category
-        return context
+        result = super().get_queryset().filter(
+            pk=self.kwargs['comment_id'],
+        ).order_by('created_at',)
+        return result

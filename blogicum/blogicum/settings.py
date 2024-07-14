@@ -134,12 +134,6 @@ INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
-# Для работы ошибки 403
-CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
-ERROR_HANDLERS = {
-    '500': 'pages.views.error_500',
-}
-
 # Подключаем бэкенд filebased.EmailBackend:
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 # Указываем директорию, в которую будут сохраняться файлы писем:

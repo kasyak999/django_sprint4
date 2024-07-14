@@ -26,8 +26,7 @@ urlpatterns = [
         ),
         name='registration',
     ),
-]
-# + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Если проект запущен в режиме разработки...
 if settings.DEBUG:
@@ -35,4 +34,6 @@ if settings.DEBUG:
     # Добавить к списку urlpatterns список адресов из приложения debug_toolbar:
     urlpatterns += (path('__debug__/', include(debug_toolbar.urls)),)
 
+handler403 = 'pages.views.csrf_failure'
 handler404 = 'pages.views.page_not_found'
+handler500 = 'pages.views.error_500'
