@@ -1,4 +1,3 @@
-from django.db.models.base import Model as Model
 from django.shortcuts import get_object_or_404, redirect
 from blog.models import Post, Category, User, Comment
 from django.utils import timezone
@@ -76,16 +75,9 @@ class CategoryPostsListView(ListView):  # DetailView
             slug=category_slug,
             is_published=True
         )
-        return category.posts.filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lt=timezone.now(),
+        return category.posts.main_filter().filter(
             category__slug = category_slug
-        ).select_related(
-            'category', 'location', 'author'
-        ).annotate(
-            comment_count=Count("comment")
-        ).order_by('-pub_date')
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
