@@ -143,3 +143,6 @@ LOGIN_URL = 'login'
 
 # Директория загруженых файлов
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Директория для щагрузки файлов
+# MEDIA_URL = 'media/'

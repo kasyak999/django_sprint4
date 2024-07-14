@@ -21,7 +21,7 @@ class DatabaseQueryManager(models.Manager):
         ).select_related(
             'category', 'location', 'author'
         ).annotate(
-            comment_count=Count("comment")
+            comment_count=Count("comments")
         ).order_by('-pub_date')
 
 
@@ -48,7 +48,7 @@ class PublishedModel(models.Model):
         return result
 
 
-class Comment(PublishedModel):  # UserComments
+class Comments(PublishedModel):  # UserComments
     """Коментарии"""
 
     text = models.TextField(verbose_name='Текст коментария')
@@ -72,7 +72,7 @@ class Post(PublishedModel):
     """Публикация"""
 
     image = models.ImageField(
-        verbose_name='Фото', blank=True, upload_to='load_images'
+        verbose_name='Фото', blank=True, upload_to='images'
     )
     author = models.ForeignKey(
         User,

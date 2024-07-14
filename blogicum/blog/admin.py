@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, Category, Location, User, Comment
+from .models import Post, Category, Location, User, Comments
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
@@ -87,7 +87,7 @@ class UserCommentsAdmin(admin.ModelAdmin):
 admin.site.register(Post, PostAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Location, LocationAdmin)
-admin.site.register(Comment, UserCommentsAdmin)
+admin.site.register(Comments, UserCommentsAdmin)
 
 
 # Регистрация модели User с вашим настроенным UserAdmin

@@ -5,8 +5,6 @@ from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from django.views.generic.edit import CreateView
 
-# Импортируем настройки проекта.
-from django.conf import settings
 # Импортируем функцию, позволяющую серверу разработки отдавать файлы.
 from django.conf.urls.static import static
 

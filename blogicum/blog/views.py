@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, redirect
-from blog.models import Post, Category, User, Comment
+from blog.models import Post, Category, User, Comments
 from django.utils import timezone
 
 from django.views.generic import (
@@ -103,7 +103,7 @@ class PostDetail(DetailView):
     template_name = 'blog/detail.html'
 
     def get_context_data(self, **kwargs):
-        result = Comment.objects.filter(
+        result = Comments.objects.filter(
             post_id=self.object.id
         ).select_related('author')
         form = AddPostForm()
@@ -198,7 +198,7 @@ class ProfileDetailView(DetailView):
                 pub_date__lt=timezone.now(), author=self.object
             )
         ).annotate(
-            comment_count=Count("comment")
+            comment_count=Count("comments")
         ).order_by('-pub_date')
 
         paginator = Paginator(user_posts, self.paginate_by)
@@ -227,7 +227,7 @@ class AddCommentCreateView(UserPassesMixin, PostSuccessUrl, CreateView):
     # UserPassesMixin
     """Добавление коментариев"""
 
-    model = Comment
+    model = Comments
     fields = ('text',)
     template_name = 'blog/comment.html'
     pk_url_kwarg = 'post_id'
@@ -244,7 +244,7 @@ class AddCommentCreateView(UserPassesMixin, PostSuccessUrl, CreateView):
 class EditCommentUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
     """Измененить коментарий"""
 
-    model = Comment
+    model = Comments
     template_name = 'blog/comment.html'
     form_class = AddPostForm
     pk_url_kwarg = 'comment_id'
@@ -259,7 +259,7 @@ class EditCommentUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
 class ComentDeleteView(OnlyAuthorMixin, PostSuccessUrl, DeleteView):
     """Удаление коментария"""
 
-    model = Comment
+    model = Comments
     template_name = 'blog/comment.html'
     form_class = AddPostForm
     pk_url_kwarg = 'comment_id'
