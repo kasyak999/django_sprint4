@@ -76,7 +76,7 @@ class CategoryPostsListView(ListView):  # DetailView
             is_published=True
         )
         return category.posts.main_filter().filter(
-            category__slug = category_slug
+            category__slug=category_slug
         )
 
     def get_context_data(self, **kwargs):
