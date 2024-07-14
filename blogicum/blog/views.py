@@ -1,9 +1,5 @@
-from collections.abc import Callable
 from django.db.models.base import Model as Model
-from django.db.models.query import QuerySet
-from django.shortcuts import render, get_object_or_404, redirect
-# get_list_or_404
-from django.http import HttpResponse, HttpRequest
+from django.shortcuts import get_object_or_404, redirect
 from blog.models import Post, Category, User, Comment
 from django.utils import timezone
 
