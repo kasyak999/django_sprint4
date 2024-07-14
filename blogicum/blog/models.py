@@ -48,7 +48,7 @@ class PublishedModel(models.Model):
         return result
 
 
-class Comment(PublishedModel): # UserComments
+class Comment(PublishedModel):  # UserComments
     """Коментарии"""
 
     text = models.TextField(verbose_name='Текст коментария')
