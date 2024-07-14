@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.db.models import Count
 
 
 User = get_user_model()
@@ -17,7 +18,11 @@ class DatabaseQueryManager(models.Manager):
             is_published=True,
             category__is_published=True,
             pub_date__lt=timezone.now()
-        ).select_related('category', 'location', 'author')
+        ).select_related(
+            'category', 'location', 'author'
+        ).annotate(
+            comment_count=Count("comment")
+        ).order_by('-pub_date')
 
 
 class PublishedModel(models.Model):

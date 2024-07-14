@@ -64,39 +64,48 @@ class IndexListView(ListView):
     context_object_name = 'post_list'
     ordering = '-pub_date'
 
-    def get_queryset(self):
-        return (
-            super().get_queryset().annotate(
-                comment_count=Count("comment")
-            )
-        )
-
 
 class CategoryPostsListView(ListView):  # DetailView
     """Вывод постов в категории"""
 
-    context_object_name = 'post_list'
+    model = Category
     template_name = 'blog/category.html'
+    context_object_name = 'post_list'
     paginate_by = 10
-    category = None
 
     def get_queryset(self):
-        self.category = get_object_or_404(
+        category_slug = self.kwargs.get('category_slug')
+        category = get_object_or_404(
             Category,
-            slug=self.kwargs['category_slug'],
+            slug=category_slug,
             is_published=True
         )
-        return self.category.posts.filter(
+        return category.posts.filter(
             is_published=True,
-            pub_date__lt=timezone.now()
-        ).select_related('location', 'author').annotate(
-                comment_count=Count("comment")
+            category__is_published=True,
+            pub_date__lt=timezone.now(),
+            category__slug = category_slug
+        ).select_related(
+            'category', 'location', 'author'
+        ).annotate(
+            comment_count=Count("comment")
         ).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(*kwargs)
-        context['category'] = self.category
+        context = super().get_context_data(**kwargs)
+        category_slug = self.kwargs.get('category_slug')
+        context['category'] = get_object_or_404(
+            Category,
+            slug=category_slug,
+            is_published=True
+        )
         return context
+
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(*kwargs)
+    #     context['category'] = super().get_object()
+    #     print(context)
+    #     return context
 
 
 class PostDetail(DetailView):
