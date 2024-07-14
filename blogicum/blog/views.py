@@ -4,7 +4,7 @@ from django.db.models.query import QuerySet
 from django.shortcuts import render, get_object_or_404, redirect
 # get_list_or_404
 from django.http import HttpResponse, HttpRequest
-from blog.models import Post, Category, User, UserComments
+from blog.models import Post, Category, User, Comment
 from django.utils import timezone
 
 from django.views.generic import (
@@ -48,11 +48,9 @@ class OnlyAuthorMixin:
 
 
 class UserPassesMixin(UserPassesTestMixin):
-    """Проверка авторства"""
     def test_func(self):
         if self.request.user.is_authenticated:
-            comment = self.get_object()
-            return self.request.user == comment.author
+            return True
         return False
 # #####################################################
 
@@ -69,7 +67,7 @@ class IndexListView(ListView):
     def get_queryset(self):
         return (
             super().get_queryset().annotate(
-                comment_count=Count("usercomments")
+                comment_count=Count("comment")
             )
         )
 
@@ -92,7 +90,7 @@ class CategoryPostsListView(ListView):  # DetailView
             is_published=True,
             pub_date__lt=timezone.now()
         ).select_related('location', 'author').annotate(
-                comment_count=Count("usercomments")
+                comment_count=Count("comment")
         ).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
@@ -108,7 +106,7 @@ class PostDetail(DetailView):
     template_name = 'blog/detail.html'
 
     def get_context_data(self, **kwargs):
-        result = UserComments.objects.filter(
+        result = Comment.objects.filter(
             post_id=self.object.id
         ).select_related('author')
         form = AddPostForm()
@@ -203,7 +201,7 @@ class ProfileDetailView(DetailView):
                 pub_date__lt=timezone.now(), author=self.object
             )
         ).annotate(
-            comment_count=Count("usercomments")
+            comment_count=Count("comment")
         ).order_by('-pub_date')
 
         paginator = Paginator(user_posts, self.paginate_by)
@@ -228,11 +226,11 @@ class ProfileUpdateView(UserSuccessUrl, UpdateView):
         return self.request.user
 
 
-class AddCommentCreateView(OnlyAuthorMixin, PostSuccessUrl, CreateView):
+class AddCommentCreateView(UserPassesMixin, PostSuccessUrl, CreateView):
     # UserPassesMixin
     """Добавление коментариев"""
 
-    model = UserComments
+    model = Comment
     fields = ('text',)
     template_name = 'blog/comment.html'
     pk_url_kwarg = 'post_id'
@@ -249,7 +247,7 @@ class AddCommentCreateView(OnlyAuthorMixin, PostSuccessUrl, CreateView):
 class EditCommentUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
     """Измененить коментарий"""
 
-    model = UserComments
+    model = Comment
     template_name = 'blog/comment.html'
     form_class = AddPostForm
     pk_url_kwarg = 'comment_id'
@@ -264,7 +262,7 @@ class EditCommentUpdateView(OnlyAuthorMixin, PostSuccessUrl, UpdateView):
 class ComentDeleteView(OnlyAuthorMixin, PostSuccessUrl, DeleteView):
     """Удаление коментария"""
 
-    model = UserComments
+    model = Comment
     template_name = 'blog/comment.html'
     form_class = AddPostForm
     pk_url_kwarg = 'comment_id'
