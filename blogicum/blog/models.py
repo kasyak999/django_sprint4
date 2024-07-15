@@ -25,17 +25,6 @@ class DatabaseQueryManager(models.Manager):
         ).annotate(
             comment_count=Count('comment')
         ).order_by('-pub_date')
-    
-    # def main_filter(self):
-    #     return super().get_queryset().filter(
-    #         is_published=True,
-    #         category__is_published=True,
-    #         pub_date__lt=timezone.now()
-    #     ).select_related(
-    #         'category', 'location', 'author'
-    #     ).annotate(
-    #         comment_count=Count("comment")
-    #     ).order_by('-pub_date')
 
 
 class PublishedModel(models.Model):
