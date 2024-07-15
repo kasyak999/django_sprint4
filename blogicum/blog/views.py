@@ -55,18 +55,18 @@ class IndexListView(ListView):
     """Главная страница"""
 
     model = Post
-    queryset = Post.objects.main_filter()
     template_name = 'blog/index.html'
     paginate_by = 10
     context_object_name = 'page_obj'
 
-    # def get_queryset(self):
-    #     return super().get_queryset().objects.main_filter()
-    
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     context['page_obj'] = super().get_queryset().objects.main_filter()
-    #     return context
+    def get_queryset(self):
+        return super().get_queryset().select_related(
+            'author', 'category', 'location'
+        ).filter(
+            is_published=True,
+            category__is_published=True,
+            pub_date__lt=timezone.now()
+        ).annotate(comment_count=Count('comment')).order_by('-pub_date')
 
 
 class CategoryPostsListView(ListView):  # DetailView
@@ -97,12 +97,6 @@ class CategoryPostsListView(ListView):  # DetailView
             is_published=True
         )
         return context
-
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(*kwargs)
-    #     context['category'] = super().get_object()
-    #     print(context)
-    #     return context
 
 
 class PostDetail(DetailView):
@@ -194,15 +188,15 @@ class ProfileDetailView(DetailView):
     paginate_by = 10
 
     def get_context_data(self, **kwargs):
-        user_posts = Post.objects.filter(
-            Q(
-                author=self.request.user
-            ) | Q(
+        if self.object == self.request.user:
+            user_posts = Post.objects.filter(author=self.object)
+        else:
+            user_posts = Post.objects.filter(
                 is_published=True,
                 category__is_published=True,
                 pub_date__lt=timezone.now(), author=self.object
             )
-        ).annotate(
+        user_posts = user_posts.annotate(
             comment_count=Count("comment")
         ).order_by('-pub_date')
 
@@ -253,6 +247,7 @@ class EditCommentUpdateView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, Up
     template_name = 'blog/comment.html'
     form_class = AddPostForm
     pk_url_kwarg = 'comment_id'
+    context_object_name = 'comment'
 
     def get_queryset(self):
         result = super().get_queryset().filter(
@@ -268,6 +263,7 @@ class ComentDeleteView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, DeleteV
     template_name = 'blog/comment.html'
     form_class = AddPostForm
     pk_url_kwarg = 'comment_id'
+    context_object_name = 'comment'
 
     def get_queryset(self):
         result = super().get_queryset().filter(
