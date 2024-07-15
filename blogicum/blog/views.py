@@ -54,7 +54,7 @@ class IndexListView(ListView):
     """Главная страница"""
 
     model = Post
-    # queryset = Post.objects.main_filter()
+    # queryset = Post.main_filter.all()
     # Неработает почему то, объясни что не так с ним
     template_name = 'blog/index.html'
     paginate_by = 10
@@ -85,8 +85,10 @@ class CategoryPostsListView(ListView):  # DetailView
             slug=category_slug,
             is_published=True
         )
-        return category.posts.main_filter().filter(
-            category__slug=category_slug
+        return category.posts.filter(
+            category__slug=category_slug,
+            is_published=True,
+            pub_date__lt=timezone.now()
         )
 
     def get_context_data(self, **kwargs):
