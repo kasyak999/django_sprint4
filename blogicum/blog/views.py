@@ -1,3 +1,4 @@
+
 from django.shortcuts import get_object_or_404, redirect
 from blog.models import Post, Category, User, Comments
 from django.utils import timezone
@@ -53,9 +54,19 @@ class UserPassesMixin(UserPassesTestMixin):
 class IndexListView(ListView):
     """Главная страница"""
 
-    queryset = Post.database_query_manager.all()
+    model = Post
+    queryset = Post.objects.main_filter()
     template_name = 'blog/index.html'
     paginate_by = 10
+    context_object_name = 'page_obj'
+
+    # def get_queryset(self):
+    #     return super().get_queryset().objects.main_filter()
+    
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     context['page_obj'] = super().get_queryset().objects.main_filter()
+    #     return context
 
 
 class CategoryPostsListView(ListView):  # DetailView
@@ -73,7 +84,7 @@ class CategoryPostsListView(ListView):  # DetailView
             slug=category_slug,
             is_published=True
         )
-        return category.posts.all().filter(
+        return category.posts.main_filter().filter(
             category__slug=category_slug
         )
 

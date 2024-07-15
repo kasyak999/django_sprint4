@@ -13,16 +13,29 @@ LINE_SLICE = 20
 class DatabaseQueryManager(models.Manager):
     """Кастомный менеджер для фильтров"""
 
-    def get_queryset(self):
-        return super().get_queryset().filter(
+    def main_filter(self):
+        return super().filter(
             is_published=True,
             category__is_published=True,
             pub_date__lt=timezone.now()
         ).select_related(
-            'category', 'location', 'author'
+            'author',
+            'category',
+            'location'
         ).annotate(
-            comment_count=Count("comment")
+            comment_count=Count('comment')
         ).order_by('-pub_date')
+    
+    # def main_filter(self):
+    #     return super().get_queryset().filter(
+    #         is_published=True,
+    #         category__is_published=True,
+    #         pub_date__lt=timezone.now()
+    #     ).select_related(
+    #         'category', 'location', 'author'
+    #     ).annotate(
+    #         comment_count=Count("comment")
+    #     ).order_by('-pub_date')
 
 
 class PublishedModel(models.Model):
@@ -105,8 +118,7 @@ class Post(PublishedModel):
         default=timezone.now
     )
 
-    database_query_manager = DatabaseQueryManager()  # Кастомный менеджер
-    objects = models.Manager() # Оставить стандартный objects
+    objects = DatabaseQueryManager()  # Кастомный менеджер
 
     class Meta(PublishedModel.Meta):
         """Перевод модели"""
