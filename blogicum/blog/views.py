@@ -58,7 +58,7 @@ class IndexListView(ListView):
     # Неработает почему то, объясни что не так с ним
     template_name = 'blog/index.html'
     paginate_by = 10
-    context_object_name = 'page_obj'
+    # context_object_name = 'page_obj'
 
     def get_queryset(self):
         return super().get_queryset().select_related(
