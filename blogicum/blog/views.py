@@ -9,7 +9,6 @@ from django.views.generic import (
 from django.urls import reverse_lazy
 
 from django.core.paginator import Paginator
-from django.db.models import Q
 from .forms import MainForm, AddForm, AddPostForm
 # from django import forms
 from django.db.models import Count
@@ -55,6 +54,8 @@ class IndexListView(ListView):
     """Главная страница"""
 
     model = Post
+    # queryset = Post.objects.main_filter()
+    # Неработает почему то, объясни что не так с ним
     template_name = 'blog/index.html'
     paginate_by = 10
     context_object_name = 'page_obj'
@@ -240,7 +241,9 @@ class AddCommentCreateView(UserPassesMixin, PostSuccessUrl, CreateView):
         return super().form_valid(form)
 
 
-class EditCommentUpdateView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView):
+class EditCommentUpdateView(
+    UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView
+):
     """Измененить коментарий"""
 
     model = Comments
@@ -256,7 +259,9 @@ class EditCommentUpdateView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, Up
         return result
 
 
-class ComentDeleteView(UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, DeleteView):
+class ComentDeleteView(
+    UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, DeleteView
+):
     """Удаление коментария"""
 
     model = Comments

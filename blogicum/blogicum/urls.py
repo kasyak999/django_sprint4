@@ -24,8 +24,7 @@ urlpatterns = [
         ),
         name='registration',
     ),
-]
-#  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Если проект запущен в режиме разработки...
 if settings.DEBUG:
