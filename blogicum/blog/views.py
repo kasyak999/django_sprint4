@@ -12,12 +12,15 @@ from django.db.models import Count
 from .mixin import OnlyAuthorMixin, UserPassesMixin
 
 
+PAGINATER = 10
+
+
 class IndexListView(ListView):
     """Главная страница"""
 
     model = Post
     template_name = 'blog/index.html'
-    paginate_by = 10
+    paginate_by = PAGINATER
     context_object_name = 'page_obj'
 
     def get_queryset(self):
@@ -30,26 +33,26 @@ class CategoryPostsListView(ListView):  # DetailView
     model = Category
     template_name = 'blog/category.html'
     context_object_name = 'post_list'
-    paginate_by = 10
+    paginate_by = PAGINATER
 
     def get_queryset(self):
         category = get_object_or_404(
-            Category,
+            super().get_queryset(),
             slug=self.kwargs['category_slug'],
             is_published=True
         )
+        self.category = category
         return category.posts.filter(
             category__slug=self.kwargs['category_slug'],
             is_published=True,
             pub_date__lt=timezone.now()
-        )
+        ).annotate(comment_count=Count('comment')).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        category_slug = self.kwargs.get('category_slug')
         context['category'] = get_object_or_404(
-            Category,
-            slug=category_slug,
+            self.model,
+            slug=self.kwargs['category_slug'],
             is_published=True
         )
         return context
@@ -149,7 +152,7 @@ class ProfileDetailView(DetailView):
     slug_field = 'username'  # Используйте username вместо pk
     slug_url_kwarg = 'username'  # Соответствующее имя в URL
     context_object_name = 'profile'
-    paginate_by = 10
+    paginate_by = PAGINATER
 
     def get_context_data(self, **kwargs):
         if self.object == self.request.user:
