@@ -38,82 +38,6 @@ class PublishedModel(models.Model):
         abstract = True
         ordering = ('created_at',)
 
-    def __str__(self):
-        if len(self.title) > LINE_SLICE:
-            result = self.title[:LINE_SLICE] + '...'
-        else:
-            result = self.title
-        return result
-
-
-class Comments(PublishedModel):  # UserComments
-    """Коментарии"""
-
-    text = models.TextField(verbose_name='Текст коментария')
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    post = models.ForeignKey(
-        'Post',
-        on_delete=models.CASCADE,
-        related_name="comment"
-    )
-
-    class Meta(PublishedModel.Meta):
-        """Перевод модели"""
-
-        verbose_name = 'коментарий'
-        verbose_name_plural = 'Коментарии'
-
-    def __str__(self):
-        return self.text
-
-
-class Post(PublishedModel):
-    """Публикация"""
-
-    image = models.ImageField(
-        verbose_name='Фото', blank=True, upload_to='images'
-    )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Автор публикации'
-    )
-    location = models.ForeignKey(
-        'Location',
-        verbose_name='Местоположение',
-        blank=True,
-        on_delete=models.SET_NULL,
-        null=True
-    )
-    category = models.ForeignKey(
-        'Category',
-        verbose_name='Категория',
-        on_delete=models.SET_NULL,
-        null=True
-    )
-
-    title = models.CharField(max_length=MAX_256, verbose_name=TITLE)
-    text = models.TextField(verbose_name='Текст')
-    pub_date = models.DateTimeField(
-        verbose_name='Дата и время публикации',
-        help_text=(
-            "Если установить дату и время в будущем — можно "
-            "делать отложенные публикации."
-        ),
-        default=timezone.now
-    )
-    # objects = models.Manager()  # Менеджер по умолчанию
-    # main_filter = DatabaseQueryManager()  # Кастомный менеджер
-
-
-    class Meta(PublishedModel.Meta):
-        """Перевод модели"""
-
-        verbose_name = 'публикация'
-        verbose_name_plural = 'Публикации'
-        ordering = ('-pub_date',)
-        default_related_name = 'posts'
-
 
 class Category(PublishedModel):
     """Тематическая категория"""
@@ -134,6 +58,13 @@ class Category(PublishedModel):
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
 
+    def __str__(self):
+        if len(self.title) > LINE_SLICE:
+            result = self.title[:LINE_SLICE] + '...'
+        else:
+            result = self.title
+        return result
+
 
 class Location(PublishedModel):
     """Географическая метка"""
@@ -147,4 +78,84 @@ class Location(PublishedModel):
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        return self.name
+        if len(self.name) > LINE_SLICE:
+            result = self.name[:LINE_SLICE] + '...'
+        else:
+            result = self.name
+        return result
+
+
+class Post(PublishedModel):
+    """Публикация"""
+
+    image = models.ImageField(
+        verbose_name='Фото', blank=True, upload_to='images'
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор публикации'
+    )
+    location = models.ForeignKey(
+        Location,
+        verbose_name='Местоположение',
+        blank=True,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    category = models.ForeignKey(
+        Category,
+        verbose_name='Категория',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    title = models.CharField(max_length=MAX_256, verbose_name=TITLE)
+    text = models.TextField(verbose_name='Текст')
+    pub_date = models.DateTimeField(
+        verbose_name='Дата и время публикации',
+        help_text=(
+            "Если установить дату и время в будущем — можно "
+            "делать отложенные публикации."
+        ),
+        default=timezone.now
+    )
+    # objects = models.Manager()  # Менеджер по умолчанию
+    # main_filter = DatabaseQueryManager()  # Кастомный менеджер
+
+    class Meta(PublishedModel.Meta):
+        """Перевод модели"""
+
+        verbose_name = 'публикация'
+        verbose_name_plural = 'Публикации'
+        ordering = ('-pub_date',)
+        default_related_name = 'posts'
+
+    def __str__(self):
+        if len(self.title) > LINE_SLICE:
+            result = self.title[:LINE_SLICE] + '...'
+        else:
+            result = self.title
+        return result
+
+
+class Comment(PublishedModel):  # UserComments
+    """Коментарии"""
+
+    text = models.TextField(verbose_name='Текст коментария')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+    class Meta(PublishedModel.Meta):
+        """Перевод модели"""
+
+        verbose_name = 'коментарий'
+        verbose_name_plural = 'Коментарии'
+        default_related_name = "comment"
+
+    def __str__(self):
+        if len(self.text) > LINE_SLICE:
+            result = self.text[:LINE_SLICE] + '...'
+        else:
+            result = self.text
+        return result

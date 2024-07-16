@@ -1,53 +1,18 @@
 
 from django.shortcuts import get_object_or_404, redirect
-from blog.models import Post, Category, User, Comments
+from blog.models import Post, Category, User, Comment
 from django.utils import timezone
 
 from django.views.generic import (
     DetailView, UpdateView, ListView, CreateView, DeleteView
 )
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 
 from django.core.paginator import Paginator
-from .forms import MainForm, AddForm, AddPostForm
+from .forms import AddForm, FormComment
 # from django import forms
 from django.db.models import Count
-from django.contrib.auth.mixins import UserPassesTestMixin
-
-
-# ####################Миксины#####################################
-class PostSuccessUrl():
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
-        )
-
-
-class UserSuccessUrl():
-    """Перенаправление на страницк пользователя"""
-
-    def get_success_url(self):
-        return reverse_lazy(
-            'blog:profile', kwargs={'username': self.request.user.username}
-        )
-
-
-class OnlyAuthorMixin:
-    def dispatch(self, request, *args, **kwargs):
-        post = self.get_object()
-        if post.author != self.request.user:
-            return redirect(
-                'blog:post_detail', kwargs['post_id']
-            )
-        return super().dispatch(request, *args, **kwargs)
-
-
-class UserPassesMixin(UserPassesTestMixin):
-    def test_func(self):
-        if self.request.user.is_authenticated:
-            return True
-        return False
-# #####################################################
+from .mixin import OnlyAuthorMixin, UserPassesMixin
 
 
 class IndexListView(ListView):
@@ -79,14 +44,13 @@ class CategoryPostsListView(ListView):  # DetailView
     paginate_by = 10
 
     def get_queryset(self):
-        category_slug = self.kwargs.get('category_slug')
         category = get_object_or_404(
             Category,
-            slug=category_slug,
+            slug=self.kwargs['category_slug'],
             is_published=True
         )
         return category.posts.filter(
-            category__slug=category_slug,
+            category__slug=self.kwargs['category_slug'],
             is_published=True,
             pub_date__lt=timezone.now()
         )
@@ -109,10 +73,10 @@ class PostDetail(DetailView):
     template_name = 'blog/detail.html'
 
     def get_context_data(self, **kwargs):
-        result = Comments.objects.filter(
+        result = Comment.objects.filter(
             post_id=self.object.id
         ).select_related('author')
-        form = AddPostForm()
+        form = FormComment()
 
         context = super().get_context_data(**kwargs)
         context['comments'] = result
@@ -131,7 +95,7 @@ class PostDetail(DetailView):
         return result
 
 
-class CreateCreateView(UserPassesMixin, UserSuccessUrl, CreateView):
+class CreateCreateView(UserPassesMixin, CreateView):
     """Создание нового поста"""
 
     model = Post
@@ -141,6 +105,11 @@ class CreateCreateView(UserPassesMixin, UserSuccessUrl, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse(
+            'blog:profile', kwargs={'username': self.request.user.username}
+        )
 
 
 class PostUserDeleteView(UserPassesMixin, OnlyAuthorMixin, DeleteView):
@@ -153,7 +122,7 @@ class PostUserDeleteView(UserPassesMixin, OnlyAuthorMixin, DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = MainForm(instance=self.object)
+        context['form'] = AddForm(instance=self.object)
         return context
 
     def get_queryset(self):
@@ -163,9 +132,7 @@ class PostUserDeleteView(UserPassesMixin, OnlyAuthorMixin, DeleteView):
         return result
 
 
-class PostUpdateView(
-    UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView
-):
+class PostUpdateView(UserPassesMixin, OnlyAuthorMixin, UpdateView):
     """Измененить пост пользователя"""
 
     model = Post
@@ -178,6 +145,11 @@ class PostUpdateView(
             pk=self.kwargs['post_id'],
         ).order_by('created_at',)
         return result
+
+    def get_success_url(self):
+        return reverse(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
 
 
 class ProfileDetailView(DetailView):
@@ -212,7 +184,7 @@ class ProfileDetailView(DetailView):
         return context
 
 
-class ProfileUpdateView(UserPassesMixin, UserSuccessUrl, UpdateView):
+class ProfileUpdateView(UserPassesMixin, UpdateView):
     """Изменение профиля пользователя"""
 
     model = User
@@ -224,12 +196,17 @@ class ProfileUpdateView(UserPassesMixin, UserSuccessUrl, UpdateView):
     def get_object(self):
         return self.request.user
 
+    def get_success_url(self):
+        return reverse(
+            'blog:profile', kwargs={'username': self.request.user.username}
+        )
 
-class AddCommentCreateView(UserPassesMixin, PostSuccessUrl, CreateView):
+
+class AddCommentCreateView(UserPassesMixin, CreateView):
     # UserPassesMixin
     """Добавление коментариев"""
 
-    model = Comments
+    model = Comment
     fields = ('text',)
     template_name = 'blog/comment.html'
     pk_url_kwarg = 'post_id'
@@ -242,15 +219,18 @@ class AddCommentCreateView(UserPassesMixin, PostSuccessUrl, CreateView):
         )
         return super().form_valid(form)
 
+    def get_success_url(self):
+        return reverse(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
 
-class EditCommentUpdateView(
-    UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, UpdateView
-):
+
+class EditCommentUpdateView(UserPassesMixin, OnlyAuthorMixin, UpdateView):
     """Измененить коментарий"""
 
-    model = Comments
+    model = Comment
     template_name = 'blog/comment.html'
-    form_class = AddPostForm
+    form_class = FormComment
     pk_url_kwarg = 'comment_id'
     context_object_name = 'comment'
 
@@ -260,15 +240,18 @@ class EditCommentUpdateView(
         ).order_by('created_at',)
         return result
 
+    def get_success_url(self):
+        return reverse(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
 
-class ComentDeleteView(
-    UserPassesMixin, OnlyAuthorMixin, PostSuccessUrl, DeleteView
-):
+
+class ComentDeleteView(UserPassesMixin, OnlyAuthorMixin, DeleteView):
     """Удаление коментария"""
 
-    model = Comments
+    model = Comment
     template_name = 'blog/comment.html'
-    form_class = AddPostForm
+    form_class = FormComment
     pk_url_kwarg = 'comment_id'
     context_object_name = 'comment'
 
@@ -277,3 +260,8 @@ class ComentDeleteView(
             pk=self.kwargs['comment_id'],
         ).order_by('created_at',)
         return result
+
+    def get_success_url(self):
+        return reverse(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
