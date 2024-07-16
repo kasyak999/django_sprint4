@@ -34,6 +34,7 @@ class CategoryPostsListView(ListView):  # DetailView
     template_name = 'blog/category.html'
     context_object_name = 'post_list'
     paginate_by = PAGINATER
+    category = None
 
     def get_queryset(self):
         category = get_object_or_404(
@@ -42,19 +43,18 @@ class CategoryPostsListView(ListView):  # DetailView
             is_published=True
         )
         self.category = category
-        return category.posts.filter(
+        result = category.posts.filter(
             category__slug=self.kwargs['category_slug'],
             is_published=True,
             pub_date__lt=timezone.now()
-        ).annotate(comment_count=Count('comment')).order_by('-pub_date')
+        )
+        return result.annotate(
+            comment_count=Count('comment')
+        ).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = get_object_or_404(
-            self.model,
-            slug=self.kwargs['category_slug'],
-            is_published=True
-        )
+        context['category'] = self.category
         return context
 
 
