@@ -1,15 +1,5 @@
-from django.urls import reverse
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.shortcuts import redirect
-
-
-class UserSuccessUrl():
-    """Перенаправление на страницк пользователя"""
-
-    def get_success_url(self):
-        return reverse(
-            'blog:profile', kwargs={'username': self.request.user.username}
-        )
 
 
 class OnlyAuthorMixin:

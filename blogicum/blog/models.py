@@ -13,7 +13,7 @@ LINE_SLICE = 20
 class DatabaseQueryManager(models.Manager):
     """Кастомный менеджер для фильтров"""
 
-    def get_queryset(self):
+    def main_filter(self):
         return super().get_queryset().filter(
             is_published=True,
             category__is_published=True,
@@ -120,8 +120,9 @@ class Post(PublishedModel):
         ),
         default=timezone.now
     )
+
+    objects = DatabaseQueryManager()  # Кастомный менеджер
     # objects = models.Manager()  # Менеджер по умолчанию
-    # main_filter = DatabaseQueryManager()  # Кастомный менеджер
 
     class Meta(PublishedModel.Meta):
         """Перевод модели"""

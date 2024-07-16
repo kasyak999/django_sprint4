@@ -1,16 +1,13 @@
 
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from blog.models import Post, Category, User, Comment
 from django.utils import timezone
-
 from django.views.generic import (
     DetailView, UpdateView, ListView, CreateView, DeleteView
 )
 from django.urls import reverse, reverse_lazy
-
 from django.core.paginator import Paginator
 from .forms import AddForm, FormComment
-# from django import forms
 from django.db.models import Count
 from .mixin import OnlyAuthorMixin, UserPassesMixin
 
@@ -19,20 +16,12 @@ class IndexListView(ListView):
     """Главная страница"""
 
     model = Post
-    # queryset = Post.main_filter.all()
-    # Неработает почему то, объясни что не так с ним
     template_name = 'blog/index.html'
     paginate_by = 10
-    # context_object_name = 'page_obj'
+    context_object_name = 'page_obj'
 
     def get_queryset(self):
-        return super().get_queryset().select_related(
-            'author', 'category', 'location'
-        ).filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lt=timezone.now()
-        ).annotate(comment_count=Count('comment')).order_by('-pub_date')
+        return self.model.objects.main_filter()
 
 
 class CategoryPostsListView(ListView):  # DetailView
