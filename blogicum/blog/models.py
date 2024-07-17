@@ -59,11 +59,11 @@ class Category(PublishedModel):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        if len(self.title) > LINE_SLICE:
-            result = self.title[:LINE_SLICE] + '...'
-        else:
-            result = self.title
-        return result
+        return (
+            self.title[:LINE_SLICE] + '...'
+            if len(self.title) > LINE_SLICE
+            else self.title
+        )
 
 
 class Location(PublishedModel):
@@ -78,11 +78,11 @@ class Location(PublishedModel):
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        if len(self.name) > LINE_SLICE:
-            result = self.name[:LINE_SLICE] + '...'
-        else:
-            result = self.name
-        return result
+        return (
+            self.name[:LINE_SLICE] + '...'
+            if len(self.name) > LINE_SLICE
+            else self.name
+        )
 
 
 class Post(PublishedModel):
@@ -133,11 +133,11 @@ class Post(PublishedModel):
         default_related_name = 'posts'
 
     def __str__(self):
-        if len(self.title) > LINE_SLICE:
-            result = self.title[:LINE_SLICE] + '...'
-        else:
-            result = self.title
-        return result
+        return (
+            self.title[:LINE_SLICE] + '...'
+            if len(self.title) > LINE_SLICE
+            else self.title
+        )
 
 
 class Comment(PublishedModel):  # UserComments
@@ -155,8 +155,8 @@ class Comment(PublishedModel):  # UserComments
         default_related_name = "comment"
 
     def __str__(self):
-        if len(self.text) > LINE_SLICE:
-            result = self.text[:LINE_SLICE] + '...'
-        else:
-            result = self.text
-        return result
+        return (
+            self.text[:LINE_SLICE] + '...'
+            if len(self.text) > LINE_SLICE
+            else self.text
+        )
