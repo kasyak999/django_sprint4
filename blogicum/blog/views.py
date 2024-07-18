@@ -11,9 +11,6 @@ from django.db.models import Count
 from .mixin import OnlyAuthorMixin, CommentMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from pprint import pprint
-from django.core.paginator import Paginator
-
 
 OBJECTS_PER_PAGE = 10
 
@@ -153,64 +150,35 @@ class PostUpdateView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
         )
 
 
-class ProfileDetailView(DetailView):
+class ProfileDetailView(ListView):
     """Просмотреть профиль пользователя"""
 
-    model = User
     template_name = 'blog/profile.html'
-    slug_field = 'username'  # Используйте username вместо pk
-    slug_url_kwarg = 'username'  # Соответствующее имя в URL
     context_object_name = 'profile'
+    pk_url_kwarg = 'username'
     paginate_by = OBJECTS_PER_PAGE
 
     def get_queryset(self):
+        self.user = get_object_or_404(
+            User,
+            username=self.kwargs[self.pk_url_kwarg]
+        )
+        if self.user == self.request.user:
+            queryset = Post.objects.filter(
+                author=self.user
+            )
+        else:
+            queryset = Post.objects.main_filter().filter(
+                author=self.user
+            )
+        return queryset.select_related(
+            'author', 'category', 'location'
+        ).annotate(comment_count=Count('comment')).order_by('-pub_date')
 
-        # Фильтруем посты, написанные этим пользователем
-        return Post.objects.all()
-
-        # if self.request.user == user:
-        #     queryset = Post.objects.filter(
-        #         author=self.request.user
-        #     )
-        # else:
-        #     queryset = Post.objects.filter(
-        #         is_published=True,
-        #         category__is_published=True,
-        #         pub_date__lt=timezone.now(),
-        #         author=self.request.user
-        #     )
-        # return queryset
-        # return queryset.annotate(
-        #     comment_count=Count("comment")
-        # ).order_by('-pub_date')
-    
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     # context['profile'] = context['post'].comment.all().select_related('author')
-    #     pprint(context)
-    #     return context
-        # if self.object == self.request.user:
-        #     user_posts = Post.objects.filter(author=self.object)
-        # else:
-        #     user_posts = Post.objects.filter(
-        #         is_published=True,
-        #         category__is_published=True,
-        #         pub_date__lt=timezone.now(), author=self.object
-        #     )
-        # user_posts = user_posts.annotate(
-        #     comment_count=Count("comment")
-        # ).order_by('-pub_date')
-
-        # paginator = Paginator(user_posts, self.paginate_by)
-        # page_number = self.request.GET.get('page')
-        # page_obj = paginator.get_page(page_number)
-
-        # context = super().get_context_data(**kwargs)
-        # context['page_obj'] = page_obj
-
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     context['profile'] = 'Профиль пользователя'
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['profile'] = self.user
+        return context
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
