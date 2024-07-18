@@ -34,15 +34,15 @@ class CategoryPostsListView(ListView):  # DetailView
     template_name = 'blog/category.html'
     context_object_name = 'post_list'
     paginate_by = OBJECTS_PER_PAGE
+    pk_url_kwarg = 'category_slug'
 
     def get_queryset(self):
-        category = get_object_or_404(
+        self.category = get_object_or_404(
             super().get_queryset(),
-            slug=self.kwargs['category_slug'],
+            slug=self.kwargs[self.pk_url_kwarg],
             is_published=True
         )
-        result = category.posts.filter(
-            category__slug=self.kwargs['category_slug'],
+        result = self.category.posts.filter(
             is_published=True,
             pub_date__lt=timezone.now()
         )
@@ -54,11 +54,7 @@ class CategoryPostsListView(ListView):  # DetailView
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = get_object_or_404(
-            self.model,
-            slug=self.kwargs['category_slug'],
-            is_published=True
-        )
+        context['category'] = self.category
         return context
 
 
@@ -164,16 +160,15 @@ class ProfileDetailView(ListView):
             username=self.kwargs[self.pk_url_kwarg]
         )
         if self.user == self.request.user:
-            queryset = Post.objects.filter(
+            return Post.objects.filter(
                 author=self.user
-            )
+            ).select_related(
+                'author', 'category', 'location'
+            ).annotate(comment_count=Count('comment')).order_by('-pub_date')
         else:
-            queryset = Post.objects.main_filter().filter(
+            return Post.objects.main_filter().filter(
                 author=self.user
             )
-        return queryset.select_related(
-            'author', 'category', 'location'
-        ).annotate(comment_count=Count('comment')).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
