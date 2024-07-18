@@ -42,15 +42,9 @@ class CategoryPostsListView(ListView):  # DetailView
             slug=self.kwargs[self.pk_url_kwarg],
             is_published=True
         )
-        result = self.category.posts.filter(
-            is_published=True,
-            pub_date__lt=timezone.now()
+        return self.category.posts.main_filter().filter(
+            category=self.category
         )
-        return result.select_related(
-            'author', 'category', 'location'
-        ).annotate(
-            comment_count=Count('comment')
-        ).order_by('-pub_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
