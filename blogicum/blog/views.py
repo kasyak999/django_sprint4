@@ -38,7 +38,7 @@ class CategoryPostsListView(ListView):  # DetailView
 
     def get_queryset(self):
         self.category = get_object_or_404(
-            super().get_queryset(),
+            self.model,
             slug=self.kwargs[self.pk_url_kwarg],
             is_published=True
         )
@@ -149,6 +149,7 @@ class PostUpdateView(LoginRequiredMixin, OnlyAuthorMixin, UpdateView):
 class ProfileDetailView(ListView):
     """Просмотреть профиль пользователя"""
 
+    model = User
     template_name = 'blog/profile.html'
     context_object_name = 'profile'
     pk_url_kwarg = 'username'
@@ -156,7 +157,7 @@ class ProfileDetailView(ListView):
 
     def get_queryset(self):
         self.user = get_object_or_404(
-            User,
+            self.model,
             username=self.kwargs[self.pk_url_kwarg]
         )
         if self.user == self.request.user:
