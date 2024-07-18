@@ -11,7 +11,8 @@ urlpatterns = [
         name='edit_post'
     ),
     path(
-        'posts/create/', views.CreatingNewPostView.as_view(), name='create_post'
+        'posts/create/', views.CreatingNewPostView.as_view(),
+        name='create_post'
     ),
     path(
         'posts/<int:post_id>/delete/', views.PostUserDeleteView.as_view(),
