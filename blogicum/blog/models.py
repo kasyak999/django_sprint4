@@ -9,12 +9,14 @@ MAX_256 = 256
 TITLE = 'Заголовок'
 LINE_SLICE = 20
 
+# class DatabaseQueryManager(models.Manager):
 
-class DatabaseQueryManager(models.Manager):
+
+class DatabaseQueryManager(models.QuerySet):
     """Кастомный менеджер для фильтров"""
 
     def main_filter(self):
-        return super().get_queryset().filter(
+        return self.filter(
             is_published=True,
             category__is_published=True,
             pub_date__lt=timezone.now()
@@ -121,8 +123,8 @@ class Post(PublishedModel):
         default=timezone.now
     )
 
-    objects = DatabaseQueryManager()  # Кастомный менеджер
-    # objects = models.Manager()  # Менеджер по умолчанию
+    # objects = DatabaseQueryManager()  # Кастомный менеджер
+    objects = DatabaseQueryManager.as_manager()
 
     class Meta(PublishedModel.Meta):
         """Перевод модели"""
