@@ -1,4 +1,40 @@
 ## Проекту django_sprint4
+
+[Ссылка на описание](#описание)
+
+### Установка
+
+1. создать виртуальное окружение
+    ```bash 
+    python -m venv venv
+    ```
+    ```bash 
+    source venv/bin/activate
+    ```
+2. Установить зависимости
+    ``` bash
+    pip install -r requirements.txt
+    ```
+3. Установить миграции
+    ```bash
+    python manage.py makemigrations
+    ```
+    ```bash
+    python manage.py migrate
+    ```
+4.  Запустить
+    ```bash
+    python manage.py runserver
+    ```
+
+### Необходимые условия
+
+- Версия Python: 3.9
+- ОС: Windows, Linux, MacOS
+- Менеджер пакетов: pip
+- БД: SQLite
+
+## Описание
 Вот перечень задач, которые выполнены:
 
 - **Кастомные страницы для ошибок.**
